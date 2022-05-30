@@ -1,0 +1,92 @@
+{% extends 'layout.html' %} {%block main%}
+<form action="{%url 'add'%}" method="post">
+    {% csrf_token %}
+    <div class="form">
+        <input class="text" type="text" name="ToDo">
+        <input class="submit" type="submit" value="Let's do">
+    </div>
+</form>
+<div class="todo">
+    {% for todo in object_list %}
+    <div class="todo__card {%if todo.status%}checked{%endif%}">
+        <div class="todo__card-left">
+            <div class="status">
+                <i class="fa-regular {%if todo.status%}fa-circle-check{%else%}fa-circle{%endif%}"></i>
+            </div>
+            <div class="title">{{todo.ToDo}}</div>
+        </div>
+        <div class="remove">
+            <i class="fa-regular fa-trash"></i>
+        </div>
+    </div>
+    {% endfor %}
+    <hr>
+</div>
+
+<script>
+    const sendData = async(url, formData) => {
+        fetch(url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    }
+
+    const createFormData = (status, todoCard) => {
+        // create form for fetch request for change ToDo status
+        const formData = new FormData();
+
+        formData.append('ToDo', todoCard.querySelector('.title').innerHTML.toString());
+        formData.append('status', status);
+        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+        return formData;
+    }
+
+    const check = (todoCard) => {
+        if (todoCard.classList.contains('checked')) {
+            sendData('{%url "check"%}', createFormData(true, todoCard))
+
+            todoCard.querySelector('i').classList.remove('fa-circle');
+            todoCard.querySelector('i').classList.add('fa-circle-check');
+            todoCard.remove();
+            document.querySelector('.todo').append(todoCard);
+        } else {
+            sendData('{%url "check"%}', createFormData(false, todoCard))
+            todoCard.querySelector('i').classList.add('fa-circle');
+            todoCard.querySelector('i').classList.remove('fa-circle-check');
+            todoCard.remove();
+            document.querySelector('.todo').prepend(todoCard);
+        }
+    };
+
+    const removeToDo = (todoCard) => {
+        sendData('{%url "remove"%}', createFormData(true, todoCard))
+    };
+
+    document.querySelectorAll('.todo__card-left').forEach(todoCard => {
+        todoCard.addEventListener('click', (event) => {
+            event.preventDefault();
+            // console.log('todoCard clicked', event);
+            todoCard.parentNode.classList.toggle('checked');
+            check(todoCard.parentNode);
+        });
+        check(todoCard.parentNode);
+    });;
+
+    document.querySelectorAll('.remove').forEach(todoCard => {
+        todoCard.addEventListener('click', (event) => {
+            event.preventDefault();
+            removeToDo(todoCard.parentNode);
+
+            todoCard.parentNode.remove();
+        });
+    });;
+</script>
+{%endblock%}
